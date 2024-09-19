@@ -43,7 +43,7 @@ int main()
     float runtime = 0.0f, sumRuntime = 0.0f;
 
     printf(
-        "[Playgounrd] Start Testing for GEMM Version %d with DType %s ... \n",
+        "[Playground] Start Testing for GEMM Version %d with DType %s ... \n",
         params::MatmulVersion, params::DataTypeName.data());
     // If not using cblas, execute the function multiple times to get average
     // runtime

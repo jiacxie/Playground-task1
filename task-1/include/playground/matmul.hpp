@@ -43,6 +43,27 @@ PG_MATMUL_SIG(float16_t, CUBLAS_VER, M, N, K, A, B, C);
  */
 PG_MATMUL_SIG(float32_t, CUBLAS_VER, M, N, K, A, B, C);
 
+
+PG_MATMUL_SIG(float32_t, 2, M, N, K, A, B, C);
+
+PG_MATMUL_SIG(float32_t, 3, M, N, K, A, B, C);
+
+PG_MATMUL_SIG(float32_t, 4, M, N, K, A, B, C);
+
+PG_MATMUL_SIG(float32_t, 5, M, N, K, A, B, C);
+
+PG_MATMUL_SIG(float32_t, 6, M, N, K, A, B, C);
+
+PG_MATMUL_SIG(float16_t, 2, M, N, K, A, B, C);
+
+PG_MATMUL_SIG(float16_t, 3, M, N, K, A, B, C);
+
+PG_MATMUL_SIG(float16_t, 4, M, N, K, A, B, C);
+
+PG_MATMUL_SIG(float16_t, 5, M, N, K, A, B, C);
+
+PG_MATMUL_SIG(float16_t, 7, M, N, K, A, B, C);
+
 // =============================================================================
 // Declaration of self-implemented matmul functions.
 // e.g. PG_MATMUL_SIG(float16_t, 2, M, N, K, A, B, C);
