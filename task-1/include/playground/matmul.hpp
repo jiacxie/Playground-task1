@@ -62,7 +62,7 @@ PG_MATMUL_SIG(float16_t, 4, M, N, K, A, B, C);
 
 PG_MATMUL_SIG(float16_t, 5, M, N, K, A, B, C);
 
-PG_MATMUL_SIG(float16_t, 7, M, N, K, A, B, C);
+PG_MATMUL_SIG(float16_t, 6, M, N, K, A, B, C);
 
 // =============================================================================
 // Declaration of self-implemented matmul functions.
