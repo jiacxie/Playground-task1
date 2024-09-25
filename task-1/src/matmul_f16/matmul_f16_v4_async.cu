@@ -7,13 +7,13 @@
 #include <iostream>
 #include <mma.h>
 
-#define OFFSET(row, col, ld) ((row) * (ld) + (col))
-#define FLOAT4(pointer) (reinterpret_cast<float4*>(&(pointer))[0])
-#define FLOAT4_CONST(pointer) (reinterpret_cast<const float4*>(&(pointer))[0])
-
 namespace playground {
 
 using namespace nvcuda;
+
+__device__ int inline offset(int row, int col, int ld) {
+    return row * ld + col;
+}
 
 __global__ void matmul_v9(const float16_t* A, const float16_t* B, float16_t* C,
                           int M, int N, int K) {
@@ -51,50 +51,35 @@ __global__ void matmul_v9(const float16_t* A, const float16_t* B, float16_t* C,
 
     int s_a_base_addr = __cvta_generic_to_shared(s_a[0]);
     int s_b_base_addr = __cvta_generic_to_shared(s_b[0]);
-    int load_a_smem_addr_0 =
-        s_a_base_addr +
-        OFFSET(load_a_smem_m, load_a_smem_k, BK + APAD) * sizeof(half);
-    int load_a_smem_addr_1 =
-        load_a_smem_addr_0 + (BK + APAD) * sizeof(half);
-    int load_b_smem_addr_0 =
-        s_b_base_addr +
-        OFFSET(load_b_smem_k, load_b_smem_n, BN + BPAD) * sizeof(half);
-    int load_b_smem_addr_1 =
-        load_b_smem_addr_0 + (BN + BPAD) * sizeof(half);
-    int load_b_smem_addr_2 =
-        load_b_smem_addr_0 + 2 * (BN + BPAD) * sizeof(half);
-    int load_b_smem_addr_3 =
-        load_b_smem_addr_0 + 3 * (BN + BPAD) * sizeof(half);
+    int load_a_smem_addr_0 = s_a_base_addr + offset(load_a_smem_m, load_a_smem_k, BK + APAD) * sizeof(half);
+    int load_a_smem_addr_1 = load_a_smem_addr_0 + (BK + APAD) * sizeof(half);
+    int load_b_smem_addr_0 = s_b_base_addr + offset(load_b_smem_k, load_b_smem_n, BN + BPAD) * sizeof(half);
+    int load_b_smem_addr_1 = load_b_smem_addr_0 + (BN + BPAD) * sizeof(half);
+    int load_b_smem_addr_2 = load_b_smem_addr_0 + 2 * (BN + BPAD) * sizeof(half);
+    int load_b_smem_addr_3 = load_b_smem_addr_0 + 3 * (BN + BPAD) * sizeof(half);
 
     int load_a_gmem_m = by * BM + load_a_smem_m;
     int load_b_gmem_n = bx * BN + load_b_smem_n;
 
-    int load_a_gmem_addr = OFFSET(load_a_gmem_m, load_a_smem_k, K);
-    int load_b_gmem_addr = OFFSET(load_b_smem_k, load_b_gmem_n, N);
+    int load_a_gmem_addr = offset(load_a_gmem_m, load_a_smem_k, K);
+    int load_b_gmem_addr = offset(load_b_smem_k, load_b_gmem_n, N);
 
     int comp_c_frag_m = wid & 1;
     int comp_c_frag_n = wid >> 1;
 
 #pragma unroll
     for (int bk = 0; bk < K / BK; bk++) {
-
-        asm("cp.async.ca.shared.global [%0], [%1], 16;\n"
-            :
+        asm("cp.async.ca.shared.global [%0], [%1], 16;\n" :
             : "r"(load_a_smem_addr_0), "l"(&A[load_a_gmem_addr]));
-        asm("cp.async.ca.shared.global [%0], [%1], 16;\n"
-            :
+        asm("cp.async.ca.shared.global [%0], [%1], 16;\n" :
             : "r"(load_a_smem_addr_1), "l"(&A[load_a_gmem_addr + K]));
-        asm("cp.async.ca.shared.global [%0], [%1], 16;\n"
-            :
+        asm("cp.async.ca.shared.global [%0], [%1], 16;\n" :
             : "r"(load_b_smem_addr_0), "l"(&B[load_b_gmem_addr]));
-        asm("cp.async.ca.shared.global [%0], [%1], 16;\n"
-            :
+        asm("cp.async.ca.shared.global [%0], [%1], 16;\n" :
             : "r"(load_b_smem_addr_1), "l"(&B[load_b_gmem_addr + N]));
-        asm("cp.async.ca.shared.global [%0], [%1], 16;\n"
-            :
+        asm("cp.async.ca.shared.global [%0], [%1], 16;\n" :
             : "r"(load_b_smem_addr_2), "l"(&B[load_b_gmem_addr + 2 * N]));
-        asm("cp.async.ca.shared.global [%0], [%1], 16;\n"
-            :
+        asm("cp.async.ca.shared.global [%0], [%1], 16;\n" :
             : "r"(load_b_smem_addr_3), "l"(&B[load_b_gmem_addr + 3 * N]));
 
         load_a_gmem_addr += BK;
@@ -136,17 +121,17 @@ __global__ void matmul_v9(const float16_t* A, const float16_t* B, float16_t* C,
 
     int store_c_gmem_m = by * BM + comp_c_frag_m * 64;
     int store_c_gmem_n = bx * BN + comp_c_frag_n * 64;
-    int store_c_gmem_addr = OFFSET(store_c_gmem_m, store_c_gmem_n, N);
-    
+    int store_c_gmem_addr = offset(store_c_gmem_m, store_c_gmem_n, N);
+
 #pragma unroll
-        for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
 #pragma unroll
-            for (int j = 0; j < 4; j++) {
-                wmma::store_matrix_sync(&C[store_c_gmem_addr + i * 16 * N + j * 16], 
-                                        frag_c[i][j],N, wmma::mem_row_major);
-            }
+        for (int j = 0; j < 4; j++) {
+            wmma::store_matrix_sync(&C[store_c_gmem_addr + i * 16 * N + j * 16], 
+                                    frag_c[i][j],N, wmma::mem_row_major);
         }
     }
+}
 
 PG_MATMUL_SIG(float16_t, 4, M, N, K, A, B, C) {
     dim3 blocks((N + 256 - 1) / 256, (M + 128 - 1) / 128, 1);

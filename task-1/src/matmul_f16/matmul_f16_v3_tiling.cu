@@ -11,7 +11,7 @@ namespace playground {
 
 using namespace nvcuda;
 
-__device__ int offset(int row, int col, int ld) {
+__device__ int inline offset(int row, int col, int ld) {
     return row * ld + col;
 }
 
