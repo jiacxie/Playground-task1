@@ -51,6 +51,7 @@ __global__ void matmul_v9(const float16_t* A, const float16_t* B, float16_t* C,
 
     int s_a_base_addr = __cvta_generic_to_shared(s_a[0]);
     int s_b_base_addr = __cvta_generic_to_shared(s_b[0]);
+    
     int load_a_smem_addr_0 = s_a_base_addr + offset(load_a_smem_m, load_a_smem_k, BK + APAD) * sizeof(half);
     int load_a_smem_addr_1 = load_a_smem_addr_0 + (BK + APAD) * sizeof(half);
     int load_b_smem_addr_0 = s_b_base_addr + offset(load_b_smem_k, load_b_smem_n, BN + BPAD) * sizeof(half);
