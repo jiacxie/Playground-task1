@@ -1,21 +1,22 @@
-// @file: ./task-1/src/f16-v2.cu
+// @file: ./task-1/src/f32-v4.cu
 #include <cstring>
 #include <cuda_runtime.h>
 #include "playground/matmul.hpp"
 
-namespace playground
-{
+namespace playground {
 
-template <typename T1, typename T2>
-    requires std::is_const_v<T1> || (!std::is_const_v<T2>)
-__host__ __device__ T1& rCast(T2& x)
-{
-    // 将T2类型的引用x的地址转换为T1类型的指针，然后解引用得到T1类型的引用
-    return *(reinterpret_cast<T1*>(&x));
+__device__ int inline offset(int row, int col, int ld) {
+    return row * ld + col;
 }
 
-#define OFFSET(row, col, ld) ((row) * (ld) + (col))
-#define FLOAT4(pointer) (reinterpret_cast<float4*>(&(pointer))[0])
+__device__ float4& float4_ref(float& pointer) {
+    return reinterpret_cast<float4*>(&pointer)[0];
+}
+
+__device__ const float4& float4_const_ref(const float& pointer) {
+    return reinterpret_cast<const float4*>(&pointer)[0];
+}
+
 __global__ void matmul_v4(const float *A, const float *B, float *C, int M, int N, int K) {
     const int BM = 128;
     const int BN = 128;
@@ -44,11 +45,11 @@ __global__ void matmul_v4(const float *A, const float *B, float *C, int M, int N
 
     for (int bk = 0; bk < (K + BK - 1) / BK; bk++) {
         int load_a_gmem_k = bk * BK + load_a_smem_k;
-        int load_a_gmem_addr = OFFSET(load_a_gmem_m, load_a_gmem_k, K);
-        FLOAT4(s_a[load_a_smem_m][load_a_smem_k]) = rCast<const float4> (A[load_a_gmem_addr]);
+        int load_a_gmem_addr = offset(load_a_gmem_m, load_a_gmem_k, K);
+        float4_ref(s_a[load_a_smem_m][load_a_smem_k]) = float4_const_ref(A[load_a_gmem_addr]);
         int load_b_gmem_k = bk * BK + load_b_smem_k;
-        int load_b_gmem_addr = OFFSET(load_b_gmem_k, load_b_gmem_n, N);
-        FLOAT4(s_b[load_b_smem_k][load_b_smem_n]) = rCast<const float4> (B[load_b_gmem_addr]);
+        int load_b_gmem_addr = offset(load_b_gmem_k, load_b_gmem_n, N);
+        float4_ref(s_b[load_b_smem_k][load_b_smem_n]) = float4_const_ref(B[load_b_gmem_addr]);
 
         __syncthreads();
 
@@ -74,17 +75,17 @@ __global__ void matmul_v4(const float *A, const float *B, float *C, int M, int N
 #pragma unroll
         for (int j = 0; j < TN; j += 4) {
             int store_c_gmem_n = bx * BN + tx * TN + j;
-            int store_c_gmem_addr = OFFSET(store_c_gmem_m, store_c_gmem_n, N);
-            FLOAT4(C[store_c_gmem_addr]) = FLOAT4(r_c[i][j]);
+            int store_c_gmem_addr = offset(store_c_gmem_m, store_c_gmem_n, N);
+            float4_ref(C[store_c_gmem_addr]) = float4_ref(r_c[i][j]);
         }
     }
 }
 
-PG_MATMUL_SIG(float32_t, 4, M, N, K, A, B, C)
-{
+PG_MATMUL_SIG(float32_t, 4, M, N, K, A, B, C) {
     dim3 blocks((N + 127) / 128, (M + 127) / 128, 1);
     dim3 threads(16, 16, 1);
     playground::matmul_v4<<<blocks, threads>>>(A, B, C, M, N, K);
     cudaDeviceSynchronize();
 }
-}
+
+} // namespace playground

@@ -17,7 +17,7 @@ constexpr int N_TILE = 16;
 constexpr int K_TILE = 16;
 
 __host__ __device__ int pad(int x, int y) {
-    return (x % y) ? ((x / y + 1) * y) : x;
+    return ((x % y) != 0) ? ((x / y + 1) * y) : x;
 }
 
 __global__ void matmul_v7(const float16_t* A, const float16_t* B, float16_t* C, int M, int N, int K) {
@@ -59,7 +59,7 @@ PG_MATMUL_SIG(float16_t, 2, M, N, K, A, B, C) {
     int M_PAD = pad(M, TILE);
     int N_PAD = pad(N, TILE);
     int nwarp = (M_PAD / TILE) * (N_PAD / TILE);
-    int GRID_DIM = (nwarp * WARP_SIZE) % 512 ? nwarp * WARP_SIZE / 512 + 1 : nwarp * WARP_SIZE / 512;
+    int GRID_DIM = (((nwarp * WARP_SIZE) % 512) != 0) ? nwarp * WARP_SIZE / 512 + 1 : nwarp * WARP_SIZE / 512;
     playground::matmul_v7<<<GRID_DIM, 512>>>(A, B, C, M, N, K);
     cudaDeviceSynchronize();
 }
