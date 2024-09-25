@@ -1,8 +1,8 @@
-// @file: ./task-1/src/f16-v2.cu
+// @file: ./task-1/src/f32-v3.cu
 #include <cuda_runtime.h>
 #include "playground/matmul.hpp"
 
-#define TILE_SIZE 32
+const int TILE_SIZE = 32;
 
 namespace playground {
 
@@ -27,7 +27,7 @@ __global__ void matmul_v3(const float *A, const float *B, float *C,
         bshare[ty][tx] = b_ptr[ty * M + tx];
         __syncthreads();
 
-    #pragma unroll
+#pragma unroll
         for (int kk = 0; kk < blockDim.y; ++kk) {
             sum += ashare[ty][kk] * bshare[kk][tx];
         }
@@ -37,13 +37,11 @@ __global__ void matmul_v3(const float *A, const float *B, float *C,
     C[(blockDim.y * by + ty) * N + blockDim.x * bx + tx] = sum;
 }
 
-PG_MATMUL_SIG(float32_t, 3, M, N, K, A, B, C)
-{
+PG_MATMUL_SIG(float32_t, 3, M, N, K, A, B, C) {
     dim3 blocks(N / 32, M / 32, 1);
     dim3 threads(32, 32, 1);
     playground::matmul_v3<<<blocks, threads>>>(A, B, C, M, N, K);
     cudaDeviceSynchronize();
 }
-}
 
-// [Playground] Result >>> TFLOPS: 4.071399; Average Error: 0.000001
+} // namespace playground
