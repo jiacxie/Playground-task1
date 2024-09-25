@@ -5,15 +5,15 @@
 
 namespace playground {
 
-__device__ int inline offset(int row, int col, int ld) {
+__device__ inline int offset(int row, int col, int ld) {
     return row * ld + col;
 }
 
-__device__ float4& float4_ref(float& pointer) {
+__device__ inline float4& float4_ref(float& pointer) {
     return reinterpret_cast<float4*>(&pointer)[0];
 }
 
-__device__ const float4& float4_const_ref(const float& pointer) {
+__device__ inline const float4& float4_const_ref(const float& pointer) {
     return reinterpret_cast<const float4*>(&pointer)[0];
 }
 
