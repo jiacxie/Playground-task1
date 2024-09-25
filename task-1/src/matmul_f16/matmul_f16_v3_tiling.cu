@@ -1,4 +1,4 @@
-// @file: ./task-1/src/f16-v2.cu
+// @file: ./task-1/src/f16-v3.cu
 #include "playground/matmul.hpp"
 #include "playground/system.hpp"
 #include <cassert>
@@ -59,7 +59,7 @@ __global__ void matmul_v8(const float16_t* A, const float16_t* B, float16_t* C,
     int load_b_smem_n = (tid & 31) << 3;
 
     int load_a_gmem_m = by * BM + load_a_smem_m;
-    int load_b_gmem_n = bx * BN + load_b_smem_n;
+    // int load_b_gmem_n = bx * BN + load_b_smem_n;
 
     int load_a_gmem_addr = offset(load_a_gmem_m, load_a_smem_k, K);
     int load_b_gmem_addr = offset(load_b_smem_k, load_b_smem_n, N);
@@ -67,6 +67,7 @@ __global__ void matmul_v8(const float16_t* A, const float16_t* B, float16_t* C,
     int comp_c_frag_m = wid & 1;
     int comp_c_frag_n = wid >> 1;
 
+#pragma unroll
     for (int bk = 0; bk < K / BK; bk++) {
         float4_ref(s_a[load_a_smem_m][load_a_smem_k]) = float4_const_ref(A[load_a_gmem_addr]);
         float4_ref(s_a[load_a_smem_m + 1][load_a_smem_k]) = float4_const_ref(A[load_a_gmem_addr + K]);
