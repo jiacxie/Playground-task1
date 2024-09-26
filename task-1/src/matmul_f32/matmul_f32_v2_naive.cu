@@ -22,6 +22,6 @@ PG_MATMUL_SIG(float32_t, 2, M, N, K, A, B, C) {
     dim3 threads(32, 32, 1);
     playground::matmul_v2<<<blocks, threads>>>(A, B, C, M, N, K);
     cudaDeviceSynchronize();
-}
+} 
 
 } // namespace playground
